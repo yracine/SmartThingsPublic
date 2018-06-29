@@ -33,7 +33,7 @@ definition(
 	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Partner/ecobee@2x.png"
 )
 
-def get_APP_VERSION() {return "3.4.4"}
+def get_APP_VERSION() {return "3.4.5"}
 
 preferences {
 	page(name: "dashboardPage", title: "DashboardPage")
@@ -57,7 +57,7 @@ def dashboardPage() {
 			input "givenInterval", "number", title: "Interval",  required: false
 		}
 		section("Humidity differential for adjustments") {
-			input "givenHumidityDiff", "number", title: "Humidity Differential [default=5%]", required: false
+			input "givenHumidityDiff", "number", title: "Humidity Offset Allowed [default=5%]", required: false
 		}
 		section("Press Next in the upper section for Initial setup") {
 			if (ecobee) {            
@@ -78,6 +78,7 @@ def dashboardPage() {
 				def hasHrv = (ecobee.currentHasHrv) ? ecobee.currentHasHrv : 'false'
 				def hasErv = (ecobee.currentHasErv) ? ecobee.currentHasErv : 'false'
 				String dehumidifyWithACString=(settings.dehumidifyWithACFlag)? 'true': 'false'                
+				String useFanWhenHumidityIsHighString=(settings.useFanWhenHumidityIsHigh)? 'true': 'false'                
 				def heatingSetpoint,coolingSetpoint
 				if (indoorSensor) {
 					indoorHumidity = indoorSensor.currentHumidity
@@ -119,6 +120,7 @@ def dashboardPage() {
 				if (heatingSetpoint)  { 
 					dParagraph = dParagraph + "HeatingSetpoint: ${heatingSetpoint}$scale\n" 
 				}
+				def min_humidity_diff = givenHumidityDiff ?: 5 //  5% humidity differential by default
 				dParagraph = dParagraph +
 					"DetailedNotification: ${detailedNotif}\n" +
 					"EcobeeCurrentProgram: $currentProgName\n" +
@@ -132,7 +134,9 @@ def dashboardPage() {
 					"EcobeeHasERV: $hasErv\n" +
 					"MinFanTime: ${min_fan_time} min.\n" +
 					"IndoorHumidity: ${indoorHumidity}%\n" +
-					"IndoorTemp: ${indoorTemp}$scale\n" 
+					"IndoorTemp: ${indoorTemp}$scale\n" +
+					"UseFanWhenHumidityIsHigh: $useFanWhenHumidityIsHighString\n" +
+					"HumidityOffsetAllowed: +/- $min_humidity_diff%\n"                    
 				if (outdoorSensor) {
 					dParagraph=  dParagraph +                   
 					"OudoorHumidity: $outdoorHumidity%\n" +
@@ -267,6 +271,7 @@ def otherSettings() {
 	dynamicPage(name: "otherSettings", title: "Other Settings", install: true, uninstall: false) {
 		section("Minimum fan runtime per hour in minutes") {
 			input "givenFanMinTime", "number", title: "Minimum fan runtime [default=20]", required: false
+			input "useFanWhenHumidityIsHigh", "bool", title: "Trigger HVAC's fan when humidity is high?", required: false
 		}
 		section("Check energy consumption at [optional, to avoid using HRV/ERV/Humidifier/Dehumidifier at peak]") {
 			input "ted", "capability.powerMeter", title: "Power meter?", description: 'optional', required: false
@@ -583,10 +588,10 @@ def setHumidityLevel() {
 		log.debug "outdoorSensorHumidity = $outdoorSensorHumidity%, normalized outdoorHumidity based on ambient temperature = $outdoorHumidity%"
 		send ("normalized outdoor humidity is ${outdoorHumidity}%,sensor outdoor humidity ${outdoorSensorHumidity}%,vs. indoor Humidity ${ecobeeHumidity}%", 
 			askAlexaFlag)
-		log.trace("Evaluate: Ecobee humidity: ${ecobeeHumidity} vs. outdoor humidity ${outdoorHumidity}," +
+		log.trace("Evaluate: Ecobee humidity: ${ecobeeHumidity} vs. outdoor humidity ${outdoorHumidity}, humidity differential allowed= ${min_humidity_diff}, " +
 			"coolingSetpoint: ${coolTemp} , heatingSetpoint: ${heatTemp}, target humidity=${target_humidity}, fanMinOnTime=${min_fan_time}")
 		log.trace("hasErv=${hasErv}, hasHrv=${hasHrv},hasHumidifier=${hasHumidifier},hasDehumidifier=${hasDehumidifier}, freeCoolingFlag=${freeCoolingFlag}," +
-			"useDehumidifierAsHRV=${useDehumidifierAsHRVFlag}")
+			"useDehumidifierAsHRV=${useDehumidifierAsHRVFlag}, useFanWhenHumidityIsHigh=${useFanWhenHumidityIsHigh}")
 	}
 
 	if ((ecobeeMode == 'cool' && (hasHrv == 'true' || hasErv == 'true')) &&
@@ -601,6 +606,13 @@ def setHumidityLevel() {
 		// Turn on the dehumidifer and HRV/ERV, the outdoor humidity is lower or equivalent than inside
 
 		ecobee.setThermostatSettings("", ['fanMinOnTime': "${min_fan_time}", 'vent': 'minontime', 'ventilatorMinOnTime': "${min_vent_time}"])
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
 
 
 	} else if (((ecobeeMode in ['heat','off', 'auto']) && (hasHrv == 'false' && hasErv == 'false' && hasDehumidifier == 'true')) &&
@@ -620,6 +632,14 @@ def setHumidityLevel() {
 			'humidifierMode': 'off', 'fanMinOnTime': "${min_fan_time}"
 			])
 
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
+
 	} else if (((ecobeeMode in ['heat','off', 'auto']) && ((hasHrv == 'true' || hasErv == 'true') && hasDehumidifier == 'false')) &&
 		(ecobeeHumidity >= (target_humidity + min_humidity_diff)) &&
 		(ecobeeHumidity >= outdoorHumidity) &&
@@ -634,6 +654,13 @@ def setHumidityLevel() {
 		//      Turn on the HRV/ERV, the outdoor temp is not too cold 
 
 		ecobee.setThermostatSettings("", ['fanMinOnTime': "${min_fan_time}", 'vent': 'minontime', 'ventilatorMinOnTime': "${min_vent_time}"])
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
 
 	} else if (((ecobeeMode in ['heat','off', 'auto']) && (hasHrv == 'true' || hasErv == 'true' || hasDehumidifier == 'true')) &&
 		(ecobeeHumidity >= (target_humidity + min_humidity_diff)) &&
@@ -652,6 +679,14 @@ def setHumidityLevel() {
 				"normalized outdoor humidity is lower (${outdoorHumidity}), but outdoor temp is ${outdoorTemp}: too cold to dehumidify"
 			send ("Too cold (${outdoorTemp}°) to dehumidify to ${target_humidity}", askAlexaFlag)
 		}
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
+
 	} else if ((((ecobeeMode in ['heat','off', 'auto']) && hasHumidifier == 'true')) &&
 		(ecobeeHumidity < (target_humidity - min_humidity_diff))) {
 
@@ -688,6 +723,13 @@ def setHumidityLevel() {
 				])
 
 		}
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
 
 	} else if (((ecobeeMode == 'cool') && (hasDehumidifier == 'false') && (hasHrv == 'false' && hasErv == 'false')) &&
 		(ecobeeHumidity > (target_humidity + min_humidity_diff)) &&
@@ -720,6 +762,13 @@ def setHumidityLevel() {
 			'dehumidifyWithAC': 'false', 'fanMinOnTime': "${min_fan_time}", 'vent': 'off'
 			])
 
+		if (settings.useFanWhenHumidityIsHigh) {
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+			ecobee.fanOn() // set fan on
+		}
 	} else if ((ecobeeMode == 'cool') && (hasDehumidifier == 'true') && (useDehumidifierAsHRVFlag) &&
 		(outdoorHumidity < target_humidity + min_humidity_diff) &&
 		(ecobeeHumidity > (target_humidity + min_humidity_diff))) {
@@ -735,6 +784,13 @@ def setHumidityLevel() {
 			])
 
 
+		if (settings.useFanWhenHumidityIsHigh) {
+			ecobee.fanOn() // set fan on
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+		}
 
 
 	} else if (((ecobeeMode == 'cool') && (hasDehumidifier == 'true' && hasErv == 'false' && hasHrv == 'false')) &&
@@ -766,7 +822,7 @@ def setHumidityLevel() {
 			])
 
 
-	} else if ((outdoorHumidity > ecobeeHumidity) && (ecobeeHumidity > target_humidity)) {
+	} else if ((outdoorHumidity > ecobeeHumidity) && (ecobeeHumidity > (target_humidity + min_humidity_diff))) {
 
 		//      If indoor humidity is greater than target, but outdoor humidity is way higher than indoor humidity, 
 		//      just wait for the next cycle & do nothing for now.
@@ -777,6 +833,20 @@ def setHumidityLevel() {
 			send ("indoor humidity is ${ecobeeHumidity}%, but outdoor humidity ${outdoorHumidity}% is too high to dehumidify", askAlexaFlag)
 		}
 
+		if (settings.useFanWhenHumidityIsHigh) {
+			ecobee.fanOn() // set fan on
+			if (detailedNotif) {
+				log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+				send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			}
+		}
+	} else if ((ecobeeHumidity > (target_humidity + min_humidity_diff)) && (settings.useFanWhenHumidityIsHigh)) {
+		if (detailedNotif) {
+			log.trace("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+			send("Indoor humidity is ${ecobeeHumidity}% and above the target humidity, triggering the HVAC fan as requested")
+		}
+		ecobee.fanOn() // set fan on
+    
 	} else {
 
 		ecobee.setThermostatSettings("", ['dehumidifierMode': 'off', 'humidifierMode': 'off', 'dehumidifyWithAC': 'false',
@@ -786,6 +856,10 @@ def setHumidityLevel() {
 			log.trace("All off, humidity level (${ecobeeHumidity}%) within range")
 			send ("all off, humidity level (${ecobeeHumidity}%) within range", askAlexaFlag)
 		}
+		if (settings.useFanWhenHumidityIsHigh) {
+			ecobee.fanAuto() // set fan off
+		}
+        
 	}
 
 	if (useDehumidifierAsHRVFlag) {
@@ -963,4 +1037,4 @@ def getImagePath() {
 
 def get_APP_NAME() {
 	return "MonitorAndSetEcobeeHumidity"
-}
+} 
