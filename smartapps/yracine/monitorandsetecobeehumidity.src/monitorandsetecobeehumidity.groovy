@@ -33,7 +33,7 @@ definition(
 	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Partner/ecobee@2x.png"
 )
 
-def get_APP_VERSION() {return "3.4.5"}
+def get_APP_VERSION() {return "3.4.6"}
 
 preferences {
 	page(name: "dashboardPage", title: "DashboardPage")
@@ -236,8 +236,8 @@ def dehumidifySettings() {
 			input "givenMinTemp", "decimal", title: "Min Outdoor Temp [default=10°F/-15°C]", description: 'optional', required: false
 		}
 		section("¨Dehumidify With AC - Use your AC to dehumidify when humidity is high and dehumidifier is not available [optional]") {
-			input "dehumidifyWithACFlag", title: "Use AC as dehumidifier (By default=false)?",  type: "bool", description: 'optional', required: false
-			input "dehumidifyWithACOffset", title: "Offset in Farenheit (+delta) to be applied to cooling setpoint for dehumidifying  [range: 0..50, need to be a multiple of 5F]",  type: "number", description: 'optional', required: false
+			input "dehumidifyWithACFlag",  "bool", title: "Use AC as dehumidifier (By default=false)?", description: 'optional', required: false
+			input "dehumidifyWithACOffset",  "number", title: "Offset in Farenheit (+delta) to be applied to cooling setpoint for dehumidifying  [range: 0..50, need to be a multiple of 5F]", description: 'optional', required: false
 		}
 		        
 		section {
