@@ -1037,4 +1037,4 @@ def getImagePath() {
 
 def get_APP_NAME() {
 	return "MonitorAndSetEcobeeHumidity"
-} 
+}
