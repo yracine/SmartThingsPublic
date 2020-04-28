@@ -84,7 +84,7 @@ def selectProgram() {
 		section("Select Nest Mode") {
 			input "givenClimate", "enum", title: "Change to this mode at Nest (Eco, Home)?", options: NestPrograms, required: true
 		}
-		section("When SmartThings' ST location (hello) mode changes to ('Eco', 'Home')[optional]") {
+		section("When SmartThings' ST location (hello) mode changes to ('Away', 'Home')[optional]") {
 			input "newMode", "enum", options: enumModes, multiple:true, required: false
 		}
 		section("Enter a delay in minutes [optional, default=immediately after ST hello mode change] ") {
