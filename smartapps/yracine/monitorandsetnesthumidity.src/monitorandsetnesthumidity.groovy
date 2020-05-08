@@ -154,7 +154,7 @@ def dashboardPage() {
 			href(name: "toNotificationsPage", title: "Other Options & Notification Setup", description: "Tap to Configure...", image: getImagePath() + "Fan.png", page: "otherSettings")
 		}
 		section("About") {
-			paragraph "${get_APP_NAME()}, the smartapp that can control your house's humidity via your connected humidifier/dehumidifier/HRV/ERV"
+			paragraph "${get_APP_NAME()}, the smartapp that can control your house's humidity via your connected humidifier/dehumidifier and switch(es)"
 			paragraph "Version ${get_APP_VERSION()}"
 			paragraph "If you like this smartapp, please support the developer via PayPal and click on the Paypal link below "
 			href url: "https://www.paypal.me/ecomatiqhomes",
