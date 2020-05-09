@@ -14,7 +14,7 @@
  *  Software Distribution is restricted and shall be done only with Developer's written approval.
  *
  *
- *  Monitor and set Humidity with Nest Thermostat(s):
+ *  Monitor and set Humidity with Nest Thermostat:
  *      Monitor humidity level indoor vs. outdoor at a regular interval (in minutes) and 
  *  N.B. Requires MyNextTstatV2 device available at 
  *          http://www.ecomatiqhomes.com/store
@@ -30,7 +30,7 @@ definition(
 )
 
 def get_APP_VERSION() {
-	return "1.0"
+	return "1.0.3"
 }
 
 preferences {
@@ -66,8 +66,8 @@ def dashboardPage() {
 				def operatingState = nest?.currentThermostatOperatingState
 				indoorHumidity = nest.currentHumidity
 				indoorTemp = nest.currentTemperature
-				def hasDehumidifier = (nest.currentHasDehumidifier) ? nest.currentHasDehumidifier : 'false'
-				def hasHumidifier = (nest.currentHasHumidifier) ? nest.currentHasHumidifier : 'false'
+				def hasDehumidifier = (nest?.currentValue("has_dehumidifier")) ? nest.currentValue("has_dehumidifier") : 'false'
+				def hasHumidifier = (nest?.currentValue("has_humidifier")) ? nest.currentValue("has_humidifier") : 'false'
 				String useFanWhenHumidityIsHighString = (settings.useFanWhenHumidityIsHigh) ? 'true' : 'false'
 				String useFanWithHumidifierSwitchesString = (settings.useFanWithHumidifierSwitches) ? 'true' : 'false'
 				String dehumidifyWithACString=(settings.dehumidifyWithACFlag)? 'true': 'false'                
@@ -89,6 +89,7 @@ def dashboardPage() {
 					case 'cool':
 						coolingSetpoint = nest?.currentValue('coolingSetpoint')
 						break
+					case 'eco':
 					case 'auto':
 						coolingSetpoint = nest?.currentValue('coolingSetpoint')
 					case 'heat':
@@ -528,8 +529,8 @@ def setHumidityLevel() {
 	def nestHumidity = nest.currentHumidity
 	def indoorHumidity = 0
 	def indoorTemp = nest.currentTemperature
-	def hasDehumidifier = (nest.currentHasDehumidifier) ? nest.currentHasDehumidifier : 'false'
-	def hasHumidifier = (nest.currentHasHumidifier) ? nest.currentHasHumidifier : 'false'
+	def hasDehumidifier = (nest?.currentValue("has_dehumidifier")) ? nest.currentValue("has_dehumidifier") : 'false'
+	def hasHumidifier = (nest?.currentValue("has_humidifier")) ? nest.currentValue("has_humidifier") : 'false'
 	def outdoorHumidity
 
 	// use the readings from another sensor if better precision neeeded
@@ -573,7 +574,7 @@ def setHumidityLevel() {
 		//			"useDehumidifierAsHRV=${useDehumidifierAsHRVFlag}, useFanWhenHumidityIsHigh=${useFanWhenHumidityIsHigh}")
 	}
 
-	if (((nestMode in ['heat', 'off', 'auto']) && (hasDehumidifier == 'true')) &&
+	if (((nestMode in ['heat', 'off', 'auto', 'eco']) && (hasDehumidifier == 'true')) &&
 		(nestHumidity >= (target_humidity + min_humidity_diff)) &&
 		(nestHumidity >= outdoorHumidity) &&
 		(outdoorTemp > min_temp)) {
@@ -600,7 +601,7 @@ def setHumidityLevel() {
 			dehumidifySwitches.on()
 		}
 
-	} else if (((nestMode in ['heat', 'off', 'auto']) && (hasDehumidifier == 'true')) &&
+	} else if (((nestMode in ['heat', 'off', 'auto', 'eco']) && (hasDehumidifier == 'true')) &&
 		(nestHumidity >= (target_humidity + min_humidity_diff)) &&
 		(nestHumidity >= outdoorHumidity) &&
 		(outdoorTemp <= min_temp)) {
@@ -608,7 +609,7 @@ def setHumidityLevel() {
 
 		//      Turn off the dehumidifer because it's too cold till the next cycle.
 
-		nest.setThermostatSettings("", ['auto_dehum_enabled': false, 'target_humidity':target_humidity, "target_humidity_enabled":true])
+		nest.setThermostatSettings("", ['auto_dehum_enabled': false, 'target_humidity':target_humidity, "target_humidity_enabled":false])
 
 		if (detailedNotif) {
 			log.trace "nest is in ${nestMode} mode and its humidity > target humidity level=${target_humidity}, need to dehumidify the house " +
@@ -629,7 +630,7 @@ def setHumidityLevel() {
 			dehumidifySwitches.on()
 		}
 
-	} else if ((((nestMode in ['heat', 'off', 'auto']) && hasHumidifier == 'true')) &&
+	} else if ((((nestMode in ['heat', 'off', 'auto', 'eco']) && hasHumidifier == 'true')) &&
 		(nestHumidity < (target_humidity - min_humidity_diff))) {
 
 		nest.setThermostatSettings("", ['auto_dehum_enabled': false, 'target_humidity':target_humidity, "target_humidity_enabled":true])
@@ -653,7 +654,7 @@ def setHumidityLevel() {
 			}
 		}
 
-	} else if ((((nestMode in ['heat', 'off', 'auto']) && hasHumidifier == 'false')) &&
+	} else if ((((nestMode in ['heat', 'off', 'auto', 'eco']) && hasHumidifier == 'false')) &&
 		(nestHumidity < (target_humidity - min_humidity_diff))) {
 
 		nest.setThermostatSettings("", ['auto_dehum_enabled': false, 'target_humidity':target_humidity, "target_humidity_enabled":true])
