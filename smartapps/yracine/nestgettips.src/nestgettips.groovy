@@ -1,6 +1,6 @@
 /*
  *  NestGetTips
- *  Copyright 2015 Yves Racine
+ *  Copyright Yves Racine
  *  LinkedIn profile: http://www.linkedin.com/in/yracine
  *
  *  Developer retains all right, title, copyright, and interest, including all copyright, patent rights, trade secret 
@@ -35,7 +35,7 @@ preferences {
 			paragraph "If you like this smartapp, please support the developer via PayPal and click on the Paypal link below " 
 				href url: "https://www.paypal.me/ecomatiqhomes",
 					title:"Paypal donation..."
-			paragraph "Copyright©2018 Yves Racine"
+			paragraph "Copyright©2018-2020 Yves Racine"
 				href url:"http://github.com/yracine/device-type.mynest", style:"embedded", required:false, title:"More information..."  
 					description: "http://github.com/yracine/device-type.mynest/blob/master/README.md"
 		}
@@ -104,6 +104,20 @@ def displayTipsPage() {
 		}  
 	}  
  
+}
+
+boolean isST() { 
+    return (getHub() == "SmartThings") 
+}
+
+private getHub() {
+    def result = "SmartThings"
+    if(state?.hub == null) {
+        try { [value: "value"]?.encodeAsJson(); } catch (e) { result = "Hubitat" }
+        state?.hub = result
+    }
+    log.debug "hubPlatform: (${state?.hub})"
+    return state?.hub
 }
 def installed() {
 
