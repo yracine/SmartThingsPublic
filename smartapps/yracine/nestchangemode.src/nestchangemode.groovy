@@ -27,7 +27,7 @@ definition(
 	namespace: "yracine",
 	author: "Yves Racine",
 	description:
-	"Change the Nest mode (Away, Home) manually (by pressing the app's play button) or automatically at the Nest thermostat(s) based on the ST hello mode(s)",
+	"Change the Nest mode (Away, Home) manually (by pressing the app's play button) or automatically at the Nest thermostat(s) based on the hub's location mode(s)",
 	category: "My Apps",
 	iconUrl: "${getCustomImagePath()}WorksWithNest.jpg",
 	iconX2Url: "${getCustomImagePath()}WorksWithNest.jpg"
@@ -44,7 +44,7 @@ preferences {
 	page(name: "selectThermostats", title: "Thermostats", install: false , uninstall: true, nextPage: "selectProgram") {
 		section("About") {
 			paragraph "NestChangeMode, the smartapp that sets your Nest structure to a 'Away' or 'Home' or just the tstats to 'Eco'" + 
-                		" based on ST hello mode."
+                		" based on the location mode."
 			paragraph "Version ${get_APP_VERSION()}" 
 			paragraph "If you like this smartapp, please support the developer via PayPal and click on the Paypal link below " 
 				href url:"https://www.paypal.me/ecomatiqhomes",
@@ -88,7 +88,7 @@ def selectProgram() {
 			input "ecoFlag", "bool", title: "Or just set the thermostat(s) to eco?", required: false
             
 		}
-		section("When SmartThings' ST location (hello) mode changes to ('Away', 'Home')[optional]") {
+		section("When hub's location  mode changes to ('Away', 'Home')[optional]") {
 			input "newMode", "enum", options: enumModes, multiple:true, required: false
 		}
 		section("Enter a delay in minutes [optional, default=immediately after ST hello mode change] ") {
