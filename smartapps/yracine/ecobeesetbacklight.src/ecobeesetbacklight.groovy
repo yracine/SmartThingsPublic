@@ -91,9 +91,9 @@ preferences {
     			input "AskAlexaExpiresInDays", "number", title: "Ask Alexa's messages expiration in days (optional,default=5 days)?", required: false
 	    	}
         }            
-	section("Set for specific ST location mode(s) [default=all]")  {
+		section("Set for specific ST location mode(s) [default=all]")  {
 			input (name:"selectedModes", type:"enum", title: "Choose ST Mode(s) to run the smartapp", options: enumModes, required: false, multiple:true) 
-	}
+		}
         section([mobileOnly:true]) {
             label title: "Assign a name for this SmartApp", required: false
         }

@@ -78,7 +78,7 @@ preferences {
 
 	page(name: "Notifications", title: "Notification & other Options", install: true, uninstall: true) {
         	if (isST()) {        
-			section("Notifications") {
+				section("Notifications") {
 	    			input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required:false
 				input "phone", "phone", title: "Send a Text Message?", required: false
 			}
@@ -94,7 +94,7 @@ preferences {
 		section("Set for specific ST location mode(s) [default=all]")  {
 			input (name:"selectedModes", type:"enum", title: "Choose ST Mode(s) to run the smartapp", options: enumModes, required: false, multiple:true) 
 		}
-        	section([mobileOnly:true]) {
+		section([mobileOnly:true]) {
 			label title: "Assign a name for this SmartApp", required: false
 		}
 	}
@@ -103,8 +103,7 @@ preferences {
 def selectAudio() {
 
 
-	return dynamicPage(name: "selectAudio", title: "Select Ecobee4 Audio Settings", install: false, uninstall: true, nextPage:
-		"Notifications") {
+	return dynamicPage(name: "selectAudio", title: "Select Ecobee4 Audio Settings", install: false, uninstall: true, nextPage:"Notifications") {
 		section("Select Audio Settings") {
 			input (name: "playbackVolume", type: "number", title: "playback volume [0-100]?", range: "0..100", required: true)
 			input (name :"micEnabled", title: "Enable Microphone?", type:"bool",required:false, defaultValue: true)

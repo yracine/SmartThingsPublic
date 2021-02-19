@@ -242,7 +242,7 @@ def otherSettings() {
 			    		description: "optional")
 	    			input "AskAlexaExpiresInDays", "number", title: "Ask Alexa's messages expiration in days (optional,default=2 days)?", required: false
 	    		}
-        	}            
+		}            
 		section("Set Humidity Level only for specific mode(s) [default=all]") {
 			input(name: "selectedMode", type: "enum", title: "Choose Mode", options: enumModes,
 				required: false, multiple: true, description: "Optional")
